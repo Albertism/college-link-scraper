@@ -2,12 +2,19 @@
 	"name": "ScholarJet Community College Link Extractor",
 	"version": "1.0",
 	"description": "Extract link to colleges from google",
-	"permissions": ["storage", "declarativeContent", "activeTab"],
+	"permissions": ["storage", "declarativeContent", "activeTab", "unlimitedStorage"],
 	"options_page": "options.html",
 	"background": {
 		"scripts": ["background.js"],
 		"persistence": false
 	},
+	"content_scripts": [
+		{
+			"matches": ["<all_urls>"],
+			"all_frames": true,
+			"js": ["content.js"]
+		}
+	],
 	"page_action": {
 	  "default_popup": "popup.html",
 	  "default_icon": {
