@@ -1,12 +1,37 @@
 // scraper for https://applyingtoschool.com/forms/ComCol-State.aspx, inject jquery first
+var collegeArray = [];
+
 function scrapeAllElements() {
-    // mark the main <tr> with id main-tr
+    // before executing: mark the main <tr> with id main-tr
     var mainTr = $('#main-tr');
     var firstColumn = $(mainTr).children('td')[0];
     var secondColumn = $(mainTr).children('td')[2];
     iterateColumn(firstColumn);
     iterateColumn(secondColumn);
+    let encodedCSV = arrayToCSV(collegeArray);
+    downloadCSV(encodedCSV)
 }
+
+function arrayToCSV(objArray) {
+    const array = typeof objArray !== 'object' ? JSON.parse(objArray) : objArray;
+    let str = `${Object.keys(array[0]).map(value => `"${value}"`).join(",")}` + '\r\n';
+
+    return array.reduce((str, next) => {
+        str += `${Object.values(next).map(value => `"${value}"`).join(",")}` + '\r\n';
+        return str;
+    }, str);
+}
+
+function downloadCSV(csv) {
+    console.log('csv: ', csv);
+    let link = document.createElement('a');
+    link.id = 'download-csv';
+    link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv));
+    link.setAttribute('download', 'community_college_master_list.csv');
+    document.body.appendChild(link);
+    document.querySelector('#download-csv').click();
+}
+
 
 function iterateColumn(column) {
     var sectionHeaders = $(column).children('h2');
@@ -16,14 +41,15 @@ function iterateColumn(column) {
         if (sectionHeaders[i]) {
             let state = sectionHeaders[i].id;
             let stateFull = sectionHeaders[i].innerText;
+            console.log('STATE ', state, ' : SECTION', sections[i]);
 
-            iterateSection(state, stateFull, sections);
+            iterateSection(state, stateFull, sections, i);
         }
     }
 }
 
-function iterateSection(state, stateFull, sections) {
-    let subSection = $(sections).children('ul');
+function iterateSection(state, stateFull, sections, sectionIndex) {
+    let subSection = $($(sections[sectionIndex]).children('ul'));
     let allListItem = subSection.children('li');
 
     for (let item of allListItem) {
@@ -33,7 +59,7 @@ function iterateSection(state, stateFull, sections) {
             return;
         } else if (anchors.length === 1) {
             let anchor = anchors[0];
-            logTheCollege(state, stateFull, anchor.innerText, anchor.href);
+            logCollege(state, stateFull, anchor.innerText, anchor.href);
         } else { // this one has different campuses
             let fontAnchors = font.find('a');
             if (fontAnchors.length < 1) { //header campus does not have url
@@ -54,14 +80,20 @@ function handleCampusColleges(collegeTitle, anchors, state, stateFull) {
 
         if (listName.indexOf('college') > -1 || listName.indexOf('College') > -1) {
             // consider it college
-            logTheCollege(state, stateFull, listName, url);
+            logCollege(state, stateFull, listName, url);
         } else {
             // consider it campuses
-            logTheCollege(state, stateFull, collegeTitle + ', ' + listName + ' Campus', url);
+            logCollege(state, stateFull, collegeTitle + ', ' + listName + ' Campus', url);
         }
     }
 }
 
-function logTheCollege(state, stateFull, collegeName, url) {
-    console.log('State: ', state, ' stateFull: ', stateFull, ' name: ', collegeName, ' url: ', url);
+function logCollege(state, stateFull, collegeName, url) {
+    let collegeObject = {
+        state: state,
+        stateFull: stateFull,
+        name: collegeName,
+        url: url
+    };
+    collegeArray.push(collegeObject);
 }
